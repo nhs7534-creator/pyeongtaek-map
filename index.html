@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>평택 함께지도 — 시민이 함께 만드는 사회연대경제 지도</title>
-<meta name="description" content="평택시의 협동조합, 사회적기업, 마을기업, 자활기업, 공공일자리제공시설, 비영리공익단체를 한눈에. 누구나 등록할 수 있는 시민 참여형 지도입니다.">
+<meta name="description" content="평택시의 협동조합, 사회적기업, 마을기업, 자활기업, 공공일자리제공시설, 비영리공익단체, 공정무역제품판매처를 한눈에. 누구나 등록할 수 있는 시민 참여형 지도입니다.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
@@ -264,7 +264,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
    ① 설정 — 이 두 줄만 바꾸면 됩니다 (설치가이드.md 참고)
    ================================================================ */
 const KAKAO_APP_KEY = "c9341bf74dc71222d7d3173bd69fabf3";        // developers.kakao.com 에서 발급
-const DATA_API_URL  = "https://script.google.com/macros/s/AKfycbyheoV1aeopm-O95VqPaVCMhtaruea05oE1F1ek1s6YA7-kXcUo9HJ224xYqgpajUBv/exec";                                  // Apps Script 웹앱 URL (비우면 예시 데이터로 동작)
+const DATA_API_URL  = "https://script.google.com/macros/s/AKfycbyheoV1aeopm-O95VqPaVCMhtaruea05oE1F1ek1s6YA7-kXcUo9HJ224xYqgpajUBv/exec";                                   // Apps Script 웹앱 URL (비우면 예시 데이터로 동작)
 
 /* ② 유형 정의 */
 const CATEGORIES = [
@@ -275,6 +275,7 @@ const CATEGORIES = [
   {id:"자활기업",        color:"#1971C2"},
   {id:"공공일자리제공시설",color:"#0C8599"},
   {id:"비영리공익단체",  color:"#9C36B5"},
+  {id:"공정무역제품판매처",color:"#D6336C"},
 ];
 const catColor = id => (CATEGORIES.find(c=>c.id===id)||{}).color || "#888";
 const catList  = str => String(str||"").split(",").map(s=>s.trim()).filter(Boolean);
