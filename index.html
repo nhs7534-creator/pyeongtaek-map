@@ -139,6 +139,14 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .btn-submit{width:100%;background:var(--gold);color:#2B1D00;font-size:15.5px;font-weight:800;padding:13px 0;border-radius:11px;margin-top:6px}
 .btn-submit:disabled{opacity:.55;cursor:not-allowed}
 
+/* 유형 다중 선택 체크박스 */
+.cat-checks{display:flex;flex-wrap:wrap;gap:7px}
+.cat-check{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-soft);
+  background:var(--white);border:1.5px solid var(--line);border-radius:999px;padding:6px 12px 6px 9px;cursor:pointer;transition:all .12s;user-select:none}
+.cat-check input{margin:0;accent-color:var(--cc,#888);width:15px;height:15px;cursor:pointer}
+.cat-check.on{color:#fff;background:var(--cc);border-color:var(--cc)}
+.badges{display:flex;flex-wrap:wrap;gap:5px}
+
 /* ---------- 토스트 ---------- */
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:60;
   background:var(--ink);color:#fff;font-size:14px;padding:12px 22px;border-radius:999px;opacity:0;pointer-events:none;transition:all .25s}
@@ -211,9 +219,8 @@ input,select,textarea{font-family:inherit;font-size:15px}
         </div>
         <div class="field">
           <label>유형 <span class="req">*</span></label>
-          <select name="category" required>
-            <option value="">선택하세요</option>
-          </select>
+          <div class="sub" style="margin:-2px 0 8px">해당하는 유형을 모두 선택하세요 (2개 이상 가능)</div>
+          <div class="cat-checks" id="catChecks"></div>
         </div>
         <div class="field">
           <label>주소 <span class="req">*</span></label>
@@ -256,8 +263,8 @@ input,select,textarea{font-family:inherit;font-size:15px}
 /* ================================================================
    ① 설정 — 이 두 줄만 바꾸면 됩니다 (설치가이드.md 참고)
    ================================================================ */
-const KAKAO_APP_KEY = "c9341bf74dc71222d7d3173bd69fabf3";        // developers.kakao.com 에서 발급
-const DATA_API_URL  = "https://script.google.com/macros/s/AKfycbyheoV1aeopm-O95VqPaVCMhtaruea05oE1F1ek1s6YA7-kXcUo9HJ224xYqgpajUBv/exec";                                   // Apps Script 웹앱 URL (비우면 예시 데이터로 동작)
+const KAKAO_APP_KEY = "여기에_카카오_JavaScript_키";        // developers.kakao.com 에서 발급
+const DATA_API_URL  = "";                                   // Apps Script 웹앱 URL (비우면 예시 데이터로 동작)
 
 /* ② 유형 정의 */
 const CATEGORIES = [
@@ -270,6 +277,8 @@ const CATEGORIES = [
   {id:"공공기관",      color:"#495057"},
 ];
 const catColor = id => (CATEGORIES.find(c=>c.id===id)||{}).color || "#888";
+const catList  = str => String(str||"").split(",").map(s=>s.trim()).filter(Boolean);
+const primaryColor = str => { const l = catList(str); return l.length ? catColor(l[0]) : "#888"; };
 
 /* ③ 예시 데이터 (DATA_API_URL 연결 전 테스트용 — 실제 기관 아님) */
 const SAMPLE = [
@@ -277,8 +286,8 @@ const SAMPLE = [
    lat:36.9946, lng:127.0888, biz:"공정무역 카페 운영, 취약계층 일자리 창출 (예시 데이터입니다)", tags:"공정무역,카페,일자리", phone:"031-000-0000", link:"", writer:"관리자"},
   {name:"예시) 두레마을기업", category:"마을기업", address:"경기도 평택시 평택로 (예시)",
    lat:36.9902, lng:127.1128, biz:"지역 농산물 가공·판매, 마을 공동체 프로그램 (예시 데이터입니다)", tags:"로컬푸드,공동체", phone:"", link:"", writer:"관리자"},
-  {name:"예시) 새출발 자활기업", category:"자활기업", address:"경기도 평택시 비전동 (예시)",
-   lat:36.9832, lng:127.1063, biz:"주거환경 개선, 집수리 서비스 (예시 데이터입니다)", tags:"집수리,주거복지,노인일자리", phone:"", link:"", writer:"관리자"},
+  {name:"예시) 새출발 자활기업", category:"자활기업,사회적기업", address:"경기도 평택시 비전동 (예시)",
+   lat:36.9832, lng:127.1063, biz:"주거환경 개선, 집수리 서비스 (예시 데이터입니다· 유형 2개 중복 등록 예시)", tags:"집수리,주거복지,노인일자리", phone:"", link:"", writer:"관리자"},
 ];
 
 /* ================================================================
@@ -345,16 +354,19 @@ function buildChips(){
 }
 function updateCounts(){
   CATEGORIES.forEach(c=>{
-    const n = places.filter(p=>p.category===c.id).length;
+    const n = places.filter(p=>catList(p.category).includes(c.id)).length;
     const el = document.querySelector(`.chip[data-cat="${c.id}"] .cnt`);
     if(el) el.textContent = n ? ` ${n}` : "";
   });
 }
 function buildCategoryOptions(){
-  const sel = document.querySelector('select[name="category"]');
-  CATEGORIES.forEach(c=>{
-    const o = document.createElement("option");
-    o.value = o.textContent = c.id; sel.appendChild(o);
+  $("#catChecks").innerHTML = CATEGORIES.map(c=>`
+    <label class="cat-check" style="--cc:${c.color}">
+      <input type="checkbox" name="category" value="${c.id}">${c.id}
+    </label>`).join("");
+  $("#catChecks").addEventListener("change", e=>{
+    const box = e.target.closest("input"); if(!box) return;
+    box.closest(".cat-check").classList.toggle("on", box.checked);
   });
 }
 
@@ -368,7 +380,7 @@ $("#qClear").addEventListener("click", ()=>{ $("#q").value=""; $("#qClear").styl
 function filtered(){
   const q = $("#q").value.trim().toLowerCase();
   return places.filter(p=>{
-    if(!activeCats.has(p.category)) return false;
+    if(!catList(p.category).some(c=>activeCats.has(c))) return false;
     if(!q) return true;
     const hay = [p.name,p.biz,p.tags,p.address,p.category].join(" ").toLowerCase();
     return q.split(/\s+/).every(w=>hay.includes(w));
@@ -392,8 +404,9 @@ function renderList(data){
   $("#list").innerHTML =
     `<div class="result-meta">${data.length}곳${q?` · '${escapeHtml(q)}'`:""}</div>` +
     data.map((p,i)=>`
-      <div class="card" style="--cat:${catColor(p.category)}" data-i="${places.indexOf(p)}">
-        <div class="row1"><span class="name">${escapeHtml(p.name)}</span><span class="badge" style="--cat:${catColor(p.category)}">${p.category}</span></div>
+      <div class="card" style="--cat:${primaryColor(p.category)}" data-i="${places.indexOf(p)}">
+        <div class="row1"><span class="name">${escapeHtml(p.name)}</span></div>
+        <div class="badges" style="margin-bottom:5px">${catList(p.category).map(c=>`<span class="badge" style="--cat:${catColor(c)}">${escapeHtml(c)}</span>`).join("")}</div>
         <div class="biz">${escapeHtml(p.biz||"")}</div>
         <div class="addr">${escapeHtml(p.address||"")}</div>
         ${p.tags ? `<div class="tags">${p.tags.split(",").map(t=>`<span class="tag">#${escapeHtml(t.trim())}</span>`).join("")}</div>` : ""}
@@ -410,7 +423,7 @@ function renderMarkers(data){
   data.forEach(p=>{
     const el = document.createElement("div");
     el.style.cssText = `width:22px;height:22px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);
-      background:${catColor(p.category)};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer`;
+      background:${primaryColor(p.category)};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer`;
     el.title = p.name;
     const ov = new kakao.maps.CustomOverlay({
       position:new kakao.maps.LatLng(p.lat,p.lng), content:el, yAnchor:1, zIndex:3
@@ -421,13 +434,13 @@ function renderMarkers(data){
 }
 
 function openDetail(p, pan){
-  const c = catColor(p.category);
+  const c = primaryColor(p.category);
   const kakaoLink = `https://map.kakao.com/link/map/${encodeURIComponent(p.name)},${p.lat},${p.lng}`;
   const routeLink = `https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${p.lat},${p.lng}`;
   $("#detail").style.setProperty("--cat", c);
   $("#detail").innerHTML = `
     <button class="close" onclick="closeDetail()" aria-label="닫기">×</button>
-    <span class="badge" style="--cat:${c}">${p.category}</span>
+    <div class="badges">${catList(p.category).map(cc=>`<span class="badge" style="--cat:${catColor(cc)}">${escapeHtml(cc)}</span>`).join("")}</div>
     <h2>${escapeHtml(p.name)}</h2>
     <dl>
       <dt>주요사업</dt><dd>${escapeHtml(p.biz||"—")}</dd>
@@ -471,9 +484,11 @@ $("#btnGeo").addEventListener("click", ()=>{
 $("#form").addEventListener("submit", async e=>{
   e.preventDefault();
   if(!geoResult){ $("#geoMsg").className="geo-ok no"; $("#geoMsg").textContent="[위치 확인] 버튼을 눌러 주소 위치를 먼저 확인해주세요."; return; }
+  const checkedCats = Array.from($("#catChecks").querySelectorAll('input[name="category"]:checked')).map(i=>i.value);
+  if(!checkedCats.length){ toast("유형을 하나 이상 선택해주세요."); return; }
   const f = new FormData($("#form"));
   const entry = {
-    name:f.get("name").trim(), category:f.get("category"), address:f.get("address").trim(),
+    name:f.get("name").trim(), category:checkedCats.join(","), address:f.get("address").trim(),
     lat:geoResult.lat, lng:geoResult.lng, biz:f.get("biz").trim(),
     tags:(f.get("tags")||"").trim(), phone:(f.get("phone")||"").trim(),
     link:(f.get("link")||"").trim(), writer:(f.get("writer")||"").trim()
@@ -497,6 +512,7 @@ $("#form").addEventListener("submit", async e=>{
   function done(msg){
     btn.disabled=false; btn.textContent="등록 요청하기";
     $("#form").reset(); geoResult=null; $("#geoMsg").textContent="";
+    $("#catChecks").querySelectorAll(".cat-check.on").forEach(el=>el.classList.remove("on"));
     closeModal(); toast(msg);
   }
 });
