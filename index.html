@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>평택 함께지도 — 시민이 함께 만드는 사회연대경제 지도</title>
+<meta name="description" content="평택시의 협동조합, 사회적기업, 마을기업, 자활기업, 사회복지시설, 공공기관을 한눈에. 누구나 등록할 수 있는 시민 참여형 지도입니다.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   평택 함께지도 — 디자인 토큰
+   pine  #14532D  깊은 소나무 (헤더/브랜드)
+   moss  #2F6B4F  이끼 초록 (보조)
+   gold  #E9A820  황금 (액션/시그니처)
+   paper #F7F5EF  종이 (패널 배경)
+   ink   #21262B  먹 (본문)
+   ============================================================ */
+:root{
+  --pine:#14532D; --moss:#2F6B4F; --gold:#E9A820; --gold-dk:#C98A0B;
+  --paper:#F7F5EF; --ink:#21262B; --ink-soft:#5B6470; --line:#E2DDD2;
+  --white:#FFFFFF;
+  /* 유형별 색 */
+  --c-coop:#74B816;     /* 일반협동조합 */
+  --c-scoop:#2F9E44;    /* 사회적협동조합 */
+  --c-village:#F59F00;  /* 마을기업 */
+  --c-social:#E8590C;   /* 사회적기업 */
+  --c-jahwal:#1971C2;   /* 자활기업 */
+  --c-welfare:#9C36B5;  /* 사회복지시설 */
+  --c-public:#495057;   /* 공공기관 */
+  --radius:14px;
+  --shadow:0 8px 28px rgba(20,40,30,.16);
+  --font-body:'Pretendard Variable',Pretendard,-apple-system,'Noto Sans KR',sans-serif;
+  --font-disp:'Gowun Batang',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--font-body);color:var(--ink);overflow:hidden;background:var(--paper)}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:15px}
+
+/* ---------- 지도 ---------- */
+#map{position:absolute;inset:0;z-index:0}
+
+/* ---------- 상단 헤더 ---------- */
+.topbar{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:12px;
+  padding:10px 16px;background:var(--pine);color:#F3EFE2;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-family:var(--font-disp);font-size:20px;font-weight:700;letter-spacing:-.5px;white-space:nowrap}
+.brand h1 .dot{color:var(--gold)}
+.brand .tagline{font-size:12px;color:#CFE0D2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.btn-add{display:flex;align-items:center;gap:6px;background:var(--gold);color:#2B1D00;font-weight:700;
+  font-size:14px;padding:9px 16px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .15s}
+.btn-add:hover{transform:translateY(-1px);background:#F2B637}
+.btn-add svg{width:15px;height:15px}
+
+/* ---------- 좌측 패널 ---------- */
+.panel{position:absolute;top:66px;left:14px;bottom:14px;width:360px;z-index:15;display:flex;flex-direction:column;
+  background:var(--paper);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--line)}
+.panel-head{padding:14px 14px 10px}
+.searchbox{display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--line);
+  border-radius:10px;padding:9px 12px;transition:border-color .15s}
+.searchbox:focus-within{border-color:var(--moss)}
+.searchbox svg{width:16px;height:16px;color:var(--ink-soft);flex:none}
+.searchbox input{flex:1;border:none;outline:none;background:none;font-size:15px}
+.searchbox .clear{color:var(--ink-soft);font-size:16px;line-height:1;padding:2px}
+.hint{font-size:12px;color:var(--ink-soft);margin-top:7px;padding-left:2px}
+
+/* 범례형 필터 칩 — 시그니처 요소 */
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 12px;border-bottom:1px solid var(--line)}
+.chip{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+  background:var(--white);border:1.5px solid var(--line);border-radius:999px;padding:5px 11px 5px 8px;transition:all .12s}
+.chip .sw{width:9px;height:9px;border-radius:3px;background:var(--sw)}
+.chip.on{color:#fff;background:var(--sw);border-color:var(--sw)}
+.chip.on .sw{background:#fff}
+.chip .cnt{font-weight:500;opacity:.75;font-size:11px}
+
+/* 결과 리스트 */
+.list{flex:1;overflow-y:auto;padding:8px}
+.list::-webkit-scrollbar{width:8px}
+.list::-webkit-scrollbar-thumb{background:#D8D2C4;border-radius:4px}
+.result-meta{font-size:12.5px;color:var(--ink-soft);padding:4px 8px 8px}
+.card{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:8px;
+  cursor:pointer;transition:border-color .12s, box-shadow .12s;border-left:4px solid var(--cat, var(--line))}
+.card:hover{border-color:var(--moss);box-shadow:0 3px 10px rgba(20,60,40,.08)}
+.card .row1{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.card .name{font-weight:700;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-size:11px;font-weight:700;color:#fff;background:var(--cat,#888);border-radius:6px;padding:2.5px 7px;white-space:nowrap}
+.card .biz{font-size:13px;color:var(--ink-soft);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .addr{font-size:12px;color:#98A0AB;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.tag{font-size:11px;color:var(--moss);background:#EAF2EC;border-radius:5px;padding:2px 7px}
+.empty{text-align:center;color:var(--ink-soft);padding:44px 20px;font-size:14px;line-height:1.8}
+.empty b{color:var(--ink)}
+
+/* ---------- 상세 카드(지도 위) ---------- */
+.detail{position:absolute;right:14px;top:66px;z-index:16;width:340px;max-width:calc(100vw - 28px);
+  background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);border-top:5px solid var(--cat,var(--moss));
+  padding:18px;display:none}
+.detail.show{display:block;animation:pop .18s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.detail .close{position:absolute;top:10px;right:12px;font-size:20px;color:var(--ink-soft);padding:4px}
+.detail h2{font-family:var(--font-disp);font-size:19px;margin:2px 0 8px;padding-right:24px;line-height:1.35}
+.detail .badge{font-size:12px}
+.detail dl{margin-top:12px;display:grid;grid-template-columns:58px 1fr;gap:7px 10px;font-size:13.5px}
+.detail dt{color:var(--ink-soft);font-weight:600}
+.detail dd{line-height:1.55;word-break:break-all}
+.detail dd a{color:var(--c-jahwal);text-decoration:none}
+.detail dd a:hover{text-decoration:underline}
+.detail .actions{display:flex;gap:8px;margin-top:14px}
+.detail .actions a{flex:1;text-align:center;font-size:13px;font-weight:700;padding:9px 0;border-radius:9px;text-decoration:none}
+.a-route{background:var(--pine);color:#fff}
+.a-kakao{background:#FEE500;color:#191600}
+
+/* ---------- 등록 모달 ---------- */
+.overlay{position:fixed;inset:0;z-index:40;background:rgba(15,25,20,.45);display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.show{display:flex}
+.modal{background:var(--paper);border-radius:16px;width:520px;max-width:100%;max-height:92vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.modal-head{position:sticky;top:0;background:var(--pine);color:#F3EFE2;padding:16px 20px;display:flex;align-items:center;z-index:2}
+.modal-head h2{font-family:var(--font-disp);font-size:18px;flex:1}
+.modal-head .close{color:#F3EFE2;font-size:22px;padding:2px 6px}
+.modal-body{padding:18px 20px 22px}
+.notice{font-size:12.5px;line-height:1.7;color:#6B5A2C;background:#FBF3DC;border:1px solid #EDD9A3;border-radius:10px;padding:10px 13px;margin-bottom:16px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.field label .req{color:#D6336C}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;background:var(--white);outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--moss)}
+.field textarea{resize:vertical;min-height:72px}
+.field .sub{font-size:11.5px;color:var(--ink-soft);margin-top:4px}
+.addr-row{display:flex;gap:8px}
+.addr-row input{flex:1}
+.btn-geo{flex:none;background:var(--moss);color:#fff;font-size:13px;font-weight:700;border-radius:9px;padding:0 14px}
+.geo-ok{font-size:12.5px;margin-top:6px;font-weight:600}
+.geo-ok.yes{color:#2B8A3E}.geo-ok.no{color:#C92A2A}
+.btn-submit{width:100%;background:var(--gold);color:#2B1D00;font-size:15.5px;font-weight:800;padding:13px 0;border-radius:11px;margin-top:6px}
+.btn-submit:disabled{opacity:.55;cursor:not-allowed}
+
+/* ---------- 토스트 ---------- */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:60;
+  background:var(--ink);color:#fff;font-size:14px;padding:12px 22px;border-radius:999px;opacity:0;pointer-events:none;transition:all .25s}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+/* ---------- 모바일 ---------- */
+.panel-toggle{display:none}
+@media (max-width:760px){
+  .brand .tagline{display:none}
+  .btn-add span{display:none}
+  .btn-add{padding:9px 12px}
+  .panel{left:0;right:0;top:auto;bottom:0;width:100%;border-radius:18px 18px 0 0;height:46vh;transition:height .25s}
+  .panel.min{height:118px}
+  .panel-toggle{display:block;width:100%;padding:8px 0 2px;text-align:center}
+  .panel-toggle .bar{display:inline-block;width:42px;height:4.5px;border-radius:3px;background:#CFC8B8}
+  .detail{top:70px;right:10px;left:10px;width:auto}
+  .list{padding-bottom:20px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- 상단 바 -->
+<header class="topbar">
+  <div class="brand">
+    <h1>평택 함께지도<span class="dot">.</span></h1>
+    <span class="tagline">시민이 함께 만드는 평택 사회연대경제 · 복지 지도</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn-add" id="btnAdd" aria-label="새 기관 등록">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    <span>기관 등록</span>
+  </button>
+</header>
+
+<!-- 좌측 패널 -->
+<aside class="panel" id="panel">
+  <button class="panel-toggle" id="panelToggle" aria-label="패널 열기/접기"><span class="bar"></span></button>
+  <div class="panel-head">
+    <div class="searchbox">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="기관명, 사업, 키워드로 검색" autocomplete="off">
+      <button class="clear" id="qClear" style="display:none" aria-label="검색어 지우기">×</button>
+    </div>
+    <div class="hint">예: 노인일자리 · 공정무역 · 돌봄 · 카페 · 재활용</div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="list" id="list"></div>
+</aside>
+
+<!-- 상세 카드 -->
+<div class="detail" id="detail"></div>
+
+<!-- 등록 모달 -->
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="기관 등록">
+    <div class="modal-head">
+      <h2>우리 동네 착한 기관 등록하기</h2>
+      <button class="close" id="modalClose" aria-label="닫기">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice">누구나 등록할 수 있어요. 등록한 정보는 <b>관리자 확인 후</b> 지도에 표시됩니다. 정확한 주소를 입력하고 <b>[위치 확인]</b>을 꼭 눌러주세요.</div>
+      <form id="form">
+        <div class="field">
+          <label>기관·기업명 <span class="req">*</span></label>
+          <input name="name" required maxlength="60" placeholder="예: 사회적협동조합 플러스평택">
+        </div>
+        <div class="field">
+          <label>유형 <span class="req">*</span></label>
+          <select name="category" required>
+            <option value="">선택하세요</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>주소 <span class="req">*</span></label>
+          <div class="addr-row">
+            <input name="address" required placeholder="예: 경기도 평택시 ○○로 12">
+            <button type="button" class="btn-geo" id="btnGeo">위치 확인</button>
+          </div>
+          <div class="geo-ok" id="geoMsg"></div>
+        </div>
+        <div class="field">
+          <label>주요 사업 <span class="req">*</span></label>
+          <textarea name="biz" required maxlength="300" placeholder="어떤 일을 하는 곳인가요? 예: 노인일자리 창출, 공정무역 카페 운영, 취약계층 집수리"></textarea>
+        </div>
+        <div class="field">
+          <label>검색 키워드(태그)</label>
+          <input name="tags" maxlength="100" placeholder="쉼표로 구분 · 예: 노인일자리, 공정무역, 돌봄">
+          <div class="sub">시민들이 이 키워드로 검색하면 기관이 나타납니다.</div>
+        </div>
+        <div class="field">
+          <label>전화번호</label>
+          <input name="phone" maxlength="20" placeholder="예: 031-000-0000">
+        </div>
+        <div class="field">
+          <label>홈페이지 · SNS</label>
+          <input name="link" maxlength="200" placeholder="https://...">
+        </div>
+        <div class="field">
+          <label>등록자 (별명 가능)</label>
+          <input name="writer" maxlength="30" placeholder="예: 평택시민">
+        </div>
+        <button type="submit" class="btn-submit" id="btnSubmit">등록 요청하기</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   ① 설정 — 이 두 줄만 바꾸면 됩니다 (설치가이드.md 참고)
+   ================================================================ */
+const KAKAO_APP_KEY = "c9341bf74dc71222d7d3173bd69fabf3";        // developers.kakao.com 에서 발급
+const DATA_API_URL  = "https://script.google.com/macros/s/AKfycbyheoV1aeopm-O95VqPaVCMhtaruea05oE1F1ek1s6YA7-kXcUo9HJ224xYqgpajUBv/exec";                                   // Apps Script 웹앱 URL (비우면 예시 데이터로 동작)
+
+/* ② 유형 정의 */
+const CATEGORIES = [
+  {id:"일반협동조합",  color:"#74B816"},
+  {id:"사회적협동조합",color:"#2F9E44"},
+  {id:"마을기업",      color:"#F59F00"},
+  {id:"사회적기업",    color:"#E8590C"},
+  {id:"자활기업",      color:"#1971C2"},
+  {id:"사회복지시설",  color:"#9C36B5"},
+  {id:"공공기관",      color:"#495057"},
+];
+const catColor = id => (CATEGORIES.find(c=>c.id===id)||{}).color || "#888";
+
+/* ③ 예시 데이터 (DATA_API_URL 연결 전 테스트용 — 실제 기관 아님) */
+const SAMPLE = [
+  {name:"예시) 함께가게 사회적협동조합", category:"사회적협동조합", address:"경기도 평택시 중앙로 (예시)",
+   lat:36.9946, lng:127.0888, biz:"공정무역 카페 운영, 취약계층 일자리 창출 (예시 데이터입니다)", tags:"공정무역,카페,일자리", phone:"031-000-0000", link:"", writer:"관리자"},
+  {name:"예시) 두레마을기업", category:"마을기업", address:"경기도 평택시 평택로 (예시)",
+   lat:36.9902, lng:127.1128, biz:"지역 농산물 가공·판매, 마을 공동체 프로그램 (예시 데이터입니다)", tags:"로컬푸드,공동체", phone:"", link:"", writer:"관리자"},
+  {name:"예시) 새출발 자활기업", category:"자활기업", address:"경기도 평택시 비전동 (예시)",
+   lat:36.9832, lng:127.1063, biz:"주거환경 개선, 집수리 서비스 (예시 데이터입니다)", tags:"집수리,주거복지,노인일자리", phone:"", link:"", writer:"관리자"},
+];
+
+/* ================================================================
+   앱 본체
+   ================================================================ */
+let map, geocoder, places=[], markers=[], activeCats=new Set(CATEGORIES.map(c=>c.id)), geoResult=null;
+const $ = s => document.querySelector(s);
+
+/* 카카오 SDK 동적 로드 */
+(function loadKakao(){
+  const s = document.createElement("script");
+  s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&libraries=services&autoload=false`;
+  s.onload = () => kakao.maps.load(init);
+  s.onerror = () => {
+    $("#list").innerHTML = `<div class="empty"><b>지도를 불러오지 못했습니다.</b><br>index.html 상단의 KAKAO_APP_KEY를 확인하고,<br>카카오 개발자센터에 사이트 도메인을 등록했는지 확인해주세요.<br>(설치가이드.md 참고)</div>`;
+  };
+  document.head.appendChild(s);
+})();
+
+async function init(){
+  map = new kakao.maps.Map($("#map"), {
+    center: new kakao.maps.LatLng(36.9921, 127.1129),   // 평택시청 부근
+    level: 7
+  });
+  map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+  geocoder = new kakao.maps.services.Geocoder();
+
+  buildChips();
+  buildCategoryOptions();
+  places = await loadData();
+  refresh();
+}
+
+/* ---------- 데이터 ---------- */
+async function loadData(){
+  if(!DATA_API_URL){
+    toast("연습 모드: 예시 데이터가 표시됩니다");
+    return SAMPLE;
+  }
+  try{
+    const r = await fetch(DATA_API_URL);
+    const rows = await r.json();
+    return rows.map(x=>({...x, lat:parseFloat(x.lat), lng:parseFloat(x.lng)}))
+               .filter(x=>!isNaN(x.lat) && !isNaN(x.lng));
+  }catch(e){
+    toast("데이터를 불러오지 못해 예시 데이터를 표시합니다");
+    return SAMPLE;
+  }
+}
+
+/* ---------- 필터 칩 ---------- */
+function buildChips(){
+  $("#chips").innerHTML = CATEGORIES.map(c=>
+    `<button class="chip on" data-cat="${c.id}" style="--sw:${c.color}">
+       <span class="sw"></span>${c.id}<span class="cnt"></span>
+     </button>`).join("");
+  $("#chips").addEventListener("click", e=>{
+    const b = e.target.closest(".chip"); if(!b) return;
+    const cat = b.dataset.cat;
+    activeCats.has(cat) ? activeCats.delete(cat) : activeCats.add(cat);
+    b.classList.toggle("on");
+    refresh();
+  });
+}
+function updateCounts(){
+  CATEGORIES.forEach(c=>{
+    const n = places.filter(p=>p.category===c.id).length;
+    const el = document.querySelector(`.chip[data-cat="${c.id}"] .cnt`);
+    if(el) el.textContent = n ? ` ${n}` : "";
+  });
+}
+function buildCategoryOptions(){
+  const sel = document.querySelector('select[name="category"]');
+  CATEGORIES.forEach(c=>{
+    const o = document.createElement("option");
+    o.value = o.textContent = c.id; sel.appendChild(o);
+  });
+}
+
+/* ---------- 검색 ---------- */
+$("#q").addEventListener("input", ()=>{
+  $("#qClear").style.display = $("#q").value ? "block" : "none";
+  refresh();
+});
+$("#qClear").addEventListener("click", ()=>{ $("#q").value=""; $("#qClear").style.display="none"; refresh(); });
+
+function filtered(){
+  const q = $("#q").value.trim().toLowerCase();
+  return places.filter(p=>{
+    if(!activeCats.has(p.category)) return false;
+    if(!q) return true;
+    const hay = [p.name,p.biz,p.tags,p.address,p.category].join(" ").toLowerCase();
+    return q.split(/\s+/).every(w=>hay.includes(w));
+  });
+}
+
+/* ---------- 렌더링 ---------- */
+function refresh(){
+  updateCounts();
+  const data = filtered();
+  renderList(data);
+  renderMarkers(data);
+}
+
+function renderList(data){
+  const q = $("#q").value.trim();
+  if(!data.length){
+    $("#list").innerHTML = `<div class="empty"><b>${q ? `'${escapeHtml(q)}' 검색 결과가 없어요.` : "표시할 기관이 없어요."}</b><br>알고 있는 착한 기관이 있다면<br>오른쪽 위 <b>[기관 등록]</b>으로 알려주세요!</div>`;
+    return;
+  }
+  $("#list").innerHTML =
+    `<div class="result-meta">${data.length}곳${q?` · '${escapeHtml(q)}'`:""}</div>` +
+    data.map((p,i)=>`
+      <div class="card" style="--cat:${catColor(p.category)}" data-i="${places.indexOf(p)}">
+        <div class="row1"><span class="name">${escapeHtml(p.name)}</span><span class="badge" style="--cat:${catColor(p.category)}">${p.category}</span></div>
+        <div class="biz">${escapeHtml(p.biz||"")}</div>
+        <div class="addr">${escapeHtml(p.address||"")}</div>
+        ${p.tags ? `<div class="tags">${p.tags.split(",").map(t=>`<span class="tag">#${escapeHtml(t.trim())}</span>`).join("")}</div>` : ""}
+      </div>`).join("");
+}
+$("#list").addEventListener("click", e=>{
+  const card = e.target.closest(".card"); if(!card) return;
+  openDetail(places[+card.dataset.i], true);
+  if(window.innerWidth<=760) $("#panel").classList.add("min");
+});
+
+function renderMarkers(data){
+  markers.forEach(m=>m.setMap(null)); markers=[];
+  data.forEach(p=>{
+    const el = document.createElement("div");
+    el.style.cssText = `width:22px;height:22px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);
+      background:${catColor(p.category)};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer`;
+    el.title = p.name;
+    const ov = new kakao.maps.CustomOverlay({
+      position:new kakao.maps.LatLng(p.lat,p.lng), content:el, yAnchor:1, zIndex:3
+    });
+    el.addEventListener("click", ()=>openDetail(p, false));
+    ov.setMap(map); markers.push(ov);
+  });
+}
+
+function openDetail(p, pan){
+  const c = catColor(p.category);
+  const kakaoLink = `https://map.kakao.com/link/map/${encodeURIComponent(p.name)},${p.lat},${p.lng}`;
+  const routeLink = `https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${p.lat},${p.lng}`;
+  $("#detail").style.setProperty("--cat", c);
+  $("#detail").innerHTML = `
+    <button class="close" onclick="closeDetail()" aria-label="닫기">×</button>
+    <span class="badge" style="--cat:${c}">${p.category}</span>
+    <h2>${escapeHtml(p.name)}</h2>
+    <dl>
+      <dt>주요사업</dt><dd>${escapeHtml(p.biz||"—")}</dd>
+      <dt>주소</dt><dd>${escapeHtml(p.address||"—")}</dd>
+      ${p.phone ? `<dt>전화</dt><dd><a href="tel:${escapeHtml(p.phone)}">${escapeHtml(p.phone)}</a></dd>`:""}
+      ${p.link ? `<dt>링크</dt><dd><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener">${escapeHtml(p.link)}</a></dd>`:""}
+      ${p.tags ? `<dt>키워드</dt><dd>${p.tags.split(",").map(t=>"#"+escapeHtml(t.trim())).join(" ")}</dd>`:""}
+    </dl>
+    <div class="actions">
+      <a class="a-route" href="${routeLink}" target="_blank" rel="noopener">길찾기</a>
+      <a class="a-kakao" href="${kakaoLink}" target="_blank" rel="noopener">카카오맵에서 보기</a>
+    </div>`;
+  $("#detail").classList.add("show");
+  if(pan){ map.setLevel(4); map.panTo(new kakao.maps.LatLng(p.lat,p.lng)); }
+}
+function closeDetail(){ $("#detail").classList.remove("show"); }
+
+/* ---------- 등록 모달 ---------- */
+$("#btnAdd").addEventListener("click", ()=>$("#overlay").classList.add("show"));
+$("#modalClose").addEventListener("click", closeModal);
+$("#overlay").addEventListener("click", e=>{ if(e.target===$("#overlay")) closeModal(); });
+function closeModal(){ $("#overlay").classList.remove("show"); }
+
+/* 주소 → 좌표 */
+$("#btnGeo").addEventListener("click", ()=>{
+  const addr = document.querySelector('input[name="address"]').value.trim();
+  const msg = $("#geoMsg");
+  geoResult = null;
+  if(!addr){ msg.className="geo-ok no"; msg.textContent="주소를 먼저 입력해주세요."; return; }
+  geocoder.addressSearch(addr, (res, status)=>{
+    if(status === kakao.maps.services.Status.OK && res[0]){
+      geoResult = {lat:parseFloat(res[0].y), lng:parseFloat(res[0].x)};
+      msg.className="geo-ok yes"; msg.textContent="✓ 위치를 찾았습니다. 이대로 등록하면 지도에 정확히 표시돼요.";
+    }else{
+      msg.className="geo-ok no"; msg.textContent="위치를 찾지 못했어요. 도로명 주소로 다시 입력해보세요. (예: 평택시 ○○로 12)";
+    }
+  });
+});
+
+/* 제출 */
+$("#form").addEventListener("submit", async e=>{
+  e.preventDefault();
+  if(!geoResult){ $("#geoMsg").className="geo-ok no"; $("#geoMsg").textContent="[위치 확인] 버튼을 눌러 주소 위치를 먼저 확인해주세요."; return; }
+  const f = new FormData($("#form"));
+  const entry = {
+    name:f.get("name").trim(), category:f.get("category"), address:f.get("address").trim(),
+    lat:geoResult.lat, lng:geoResult.lng, biz:f.get("biz").trim(),
+    tags:(f.get("tags")||"").trim(), phone:(f.get("phone")||"").trim(),
+    link:(f.get("link")||"").trim(), writer:(f.get("writer")||"").trim()
+  };
+  const btn = $("#btnSubmit");
+  btn.disabled = true; btn.textContent = "등록 중…";
+
+  if(!DATA_API_URL){
+    // 연습 모드: 화면에만 즉시 추가
+    places.push(entry); refresh();
+    done("연습 모드: 지도에 임시로 표시했어요 (새로고침하면 사라집니다)");
+    return;
+  }
+  try{
+    await fetch(DATA_API_URL, { method:"POST", headers:{"Content-Type":"text/plain"}, body:JSON.stringify(entry) });
+    done("등록 요청 완료! 관리자 확인 후 지도에 표시됩니다. 감사합니다 🙂");
+  }catch(err){
+    btn.disabled=false; btn.textContent="등록 요청하기";
+    toast("전송에 실패했어요. 잠시 후 다시 시도해주세요.");
+  }
+  function done(msg){
+    btn.disabled=false; btn.textContent="등록 요청하기";
+    $("#form").reset(); geoResult=null; $("#geoMsg").textContent="";
+    closeModal(); toast(msg);
+  }
+});
+
+/* ---------- 유틸 ---------- */
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove("show"), 3800);
+}
+function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+/* 모바일 패널 접기 */
+$("#panelToggle").addEventListener("click", ()=>$("#panel").classList.toggle("min"));
+</script>
+</body>
+</html>
