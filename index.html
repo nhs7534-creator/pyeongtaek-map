@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>평택 함께지도 — 시민이 함께 만드는 사회연대경제·공공일자리 지도</title>
+<title>평택 함께지도 — 시민이 함께 만드는 평택시 사회연대경제·공공일자리 지도</title>
 <meta name="description" content="평택시의 협동조합, 사회적기업, 마을기업, 자활기업, 공공일자리제공시설, 비영리공익단체, 공정무역제품판매처를 한눈에. 누구나 등록할 수 있는 시민 참여형 지도입니다.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -193,7 +193,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
 <header class="topbar">
   <div class="brand">
     <h1>평택 함께지도<span class="dot">.</span></h1>
-    <span class="tagline">시민이 함께 만드는 평택 사회연대경제 · 공공일자리 지도</span>
+    <span class="tagline">시민이 함께 만드는 평택시 사회연대경제·공공일자리 지도</span>
   </div>
   <div class="spacer"></div>
   <button class="btn-add" id="btnAdd" aria-label="새 기관 등록">
@@ -359,7 +359,7 @@ async function loadAd(){
     adIdx = Math.floor(Math.random() * ads.length);
     showAdBanner();
     if(ads.length > 1){
-      adTimer = setInterval(()=>{ adIdx = (adIdx + 1) % ads.length; showAdBanner(); }, 18000); // 18초마다 천천히 전환
+      adTimer = setInterval(()=>{ adIdx = (adIdx + 1) % ads.length; showAdBanner(); }, 5000); // 5초마다 전환
     }
     $("#adArea").classList.add("show");
   }catch(e){ /* 광고 로드 실패 시 조용히 무시 */ }
