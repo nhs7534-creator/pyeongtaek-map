@@ -95,6 +95,23 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .empty{text-align:center;color:var(--ink-soft);padding:44px 20px;font-size:14px;line-height:1.8}
 .empty b{color:var(--ink)}
 
+/* ---------- 광고 영역 ---------- */
+.ad-area{margin:0 8px 10px;display:none}
+.ad-area.show{display:block}
+.ad-label{font-size:11px;color:var(--ink-soft);font-weight:700;margin:2px 2px 6px;letter-spacing:.2px}
+.ad-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:9px;margin-bottom:2px}
+.ad-list::-webkit-scrollbar{height:5px}
+.ad-list::-webkit-scrollbar-thumb{background:#D8D2C4;border-radius:3px}
+.ad-list a{flex:none;width:54px;height:54px;border-radius:11px;overflow:hidden;border:1px solid var(--line);
+  display:block;transition:transform .12s, border-color .12s}
+.ad-list a:hover{transform:translateY(-2px);border-color:var(--moss)}
+.ad-list img{width:100%;height:100%;object-fit:cover;display:block}
+.ad-banner{border-radius:10px;overflow:hidden;border:1px solid var(--line);position:relative;background:var(--white)}
+.ad-banner a{display:block;line-height:0}
+.ad-banner img{width:100%;height:auto;display:block;max-height:120px;object-fit:cover}
+.ad-banner .ad-tag{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;
+  padding:2px 7px;border-radius:5px;letter-spacing:.3px;pointer-events:none}
+
 /* ---------- 상세 카드(지도 위) ---------- */
 .detail{position:absolute;right:14px;top:66px;z-index:16;width:340px;max-width:calc(100vw - 28px);
   background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);border-top:5px solid var(--cat,var(--moss));
@@ -197,6 +214,11 @@ input,select,textarea{font-family:inherit;font-size:15px}
     <div class="hint">예: 노인일자리 · 공정무역 · 돌봄 · 카페 · 재활용</div>
   </div>
   <div class="chips" id="chips"></div>
+  <div class="ad-area" id="adArea">
+    <div class="ad-label">함께하는 기업 · 광고</div>
+    <div class="ad-list" id="adList"></div>
+    <div class="ad-banner" id="adBanner"></div>
+  </div>
   <div class="list" id="list"></div>
 </aside>
 
@@ -264,7 +286,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
    ① 설정 — 이 두 줄만 바꾸면 됩니다 (설치가이드.md 참고)
    ================================================================ */
 const KAKAO_APP_KEY = "c9341bf74dc71222d7d3173bd69fabf3";        // developers.kakao.com 에서 발급
-const DATA_API_URL  = "https://script.google.com/macros/s/AKfycbyheoV1aeopm-O95VqPaVCMhtaruea05oE1F1ek1s6YA7-kXcUo9HJ224xYqgpajUBv/exec";                                   // Apps Script 웹앱 URL (비우면 예시 데이터로 동작)
+const DATA_API_URL  = "https://script.google.com/macros/s/AKfycbyheoV1aeopm-O95VqPaVCMhtaruea05oE1F1ek1s6YA7-kXcUo9HJ224xYqgpajUBv/exec";                                  // Apps Script 웹앱 URL (비우면 예시 데이터로 동작)
 
 /* ② 유형 정의 */
 const CATEGORIES = [
@@ -320,6 +342,61 @@ async function init(){
   buildCategoryOptions();
   places = await loadData();
   refresh();
+  loadAd();
+}
+
+/* ---------- 광고 영역 ---------- */
+let ads = [], adIdx = 0, adTimer = null;
+
+async function loadAd(){
+  if(!DATA_API_URL) return;    // 연습 모드에서는 표시 안 함
+  try{
+    const r = await fetch(DATA_API_URL + (DATA_API_URL.includes("?") ? "&" : "?") + "mode=ads");
+    const data = await r.json();
+    if(!Array.isArray(data) || !data.length) return;
+    ads = data;
+    renderAdList();
+    adIdx = Math.floor(Math.random() * ads.length);
+    showAdBanner();
+    if(ads.length > 1){
+      adTimer = setInterval(()=>{ adIdx = (adIdx + 1) % ads.length; showAdBanner(); }, 18000); // 18초마다 천천히 전환
+    }
+    $("#adArea").classList.add("show");
+  }catch(e){ /* 광고 로드 실패 시 조용히 무시 */ }
+}
+
+/* 클릭 가능한 로고 목록 — 사용자가 원할 때 바로 둘러볼 수 있음 */
+function renderAdList(){
+  $("#adList").innerHTML = ads.map((ad,i)=>`
+    <a href="${escapeHtml(ad.link||'#')}" target="_blank" rel="noopener sponsored" data-i="${i}" title="${escapeHtml(ad.name||"광고")}">
+      <img src="${escapeHtml(ad.img)}" alt="${escapeHtml(ad.name||"광고")}" loading="lazy">
+    </a>`).join("");
+  $("#adList").addEventListener("click", e=>{
+    const a = e.target.closest("a[data-i]"); if(!a) return;
+    logAdEvent(ads[+a.dataset.i].row, "click");
+  });
+  ads.forEach(ad => logAdEvent(ad.row, "view"));   // 목록에 등장 = 1회 노출로 집계
+}
+
+/* 하단 배너 — 18초 간격으로 천천히 자동 전환 */
+function showAdBanner(){
+  const ad = ads[adIdx];
+  const slot = $("#adBanner");
+  const img = `<img src="${escapeHtml(ad.img)}" alt="${escapeHtml(ad.name||"광고")}" loading="lazy">`;
+  slot.innerHTML = ad.link
+    ? `<a href="${escapeHtml(ad.link)}" target="_blank" rel="noopener sponsored" id="adBannerLink">${img}</a><span class="ad-tag">광고</span>`
+    : `${img}<span class="ad-tag">광고</span>`;
+  logAdEvent(ad.row, "view");
+  const link = document.getElementById("adBannerLink");
+  if(link) link.addEventListener("click", ()=>logAdEvent(ad.row, "click"));
+}
+
+function logAdEvent(row, type){
+  if(!DATA_API_URL || !row) return;
+  fetch(DATA_API_URL, {
+    method:"POST", headers:{"Content-Type":"text/plain"},
+    body: JSON.stringify({ mode:"ad_event", row, type })
+  }).catch(()=>{});   // 실패해도 사용자 경험에 영향 없도록 무시
 }
 
 /* ---------- 데이터 ---------- */
