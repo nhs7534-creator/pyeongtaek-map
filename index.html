@@ -189,12 +189,19 @@ input,select,textarea{font-family:inherit;font-size:15px}
   .brand .tagline{display:none}
   .btn-add span{display:none}
   .btn-add{padding:9px 12px}
-  .panel{left:0;right:0;top:auto;bottom:0;width:100%;border-radius:18px 18px 0 0;height:46vh;transition:height .25s}
+  .panel{left:0;right:0;top:auto;bottom:0;width:100%;border-radius:18px 18px 0 0;height:58vh;transition:height .25s}
   .panel.min{height:118px}
-  .panel-toggle{display:block;width:100%;padding:8px 0 2px;text-align:center}
+  .panel-toggle{display:block;width:100%;padding:14px 0 10px;text-align:center;touch-action:none;cursor:grab}
   .panel-toggle .bar{display:inline-block;width:42px;height:4.5px;border-radius:3px;background:#CFC8B8}
   .detail{top:70px;right:10px;left:10px;width:auto}
   .list{padding-bottom:20px}
+  /* 유형이 많아져도 세로 공간을 다 차지하지 않도록 한 줄 가로 스크롤로 전환 */
+  .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch}
+  .chips::-webkit-scrollbar{height:5px}
+  .chips::-webkit-scrollbar-thumb{background:#D8D2C4;border-radius:3px}
+  .chip{flex:none}
+  .ad-area{flex:none}
+  .ad-list a{width:46px;height:46px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}/* ---------- 지도 클릭 위치선택 모드 ---------- */
 .map-pick-banner{position:absolute;top:66px;left:50%;transform:translateX(-50%);z-index:25;
@@ -583,7 +590,7 @@ function renderList(data){
 $("#list").addEventListener("click", e=>{
   const card = e.target.closest(".card"); if(!card) return;
   openDetail(places[+card.dataset.i], true);
-  if(window.innerWidth<=760) $("#panel").classList.add("min");
+  if(window.innerWidth<=760){ $("#panel").classList.add("min"); setPanelHeight(PANEL_MIN); }
 });
 
 function renderMarkers(data){
@@ -802,7 +809,51 @@ function toast(msg){
 function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 
 /* 모바일 패널 접기 */
-$("#panelToggle").addEventListener("click", ()=>$("#panel").classList.toggle("min"));
+/* 모바일 패널 — 손가락으로 끌어서 크기 조절 (드래그) + 손잡이 탭으로 순환 전환 */
+const PANEL_MIN = 118;
+const panelMaxH = () => window.innerHeight - 80;
+const panelHalfH = () => Math.round(window.innerHeight * 0.58);
+function setPanelHeight(px){
+  const max = panelMaxH();
+  $("#panel").style.height = Math.max(PANEL_MIN, Math.min(max, px)) + "px";
+}
+(function initPanelDrag(){
+  const toggle = $("#panelToggle"), panel = $("#panel");
+  let dragging=false, startY=0, startH=0, moved=0;
+  toggle.addEventListener("pointerdown", e=>{
+    if(window.innerWidth>760) return;
+    dragging = true; moved = 0;
+    startY = e.clientY;
+    startH = panel.getBoundingClientRect().height;
+    panel.style.transition = "none";
+    toggle.setPointerCapture(e.pointerId);
+  });
+  toggle.addEventListener("pointermove", e=>{
+    if(!dragging) return;
+    const delta = startY - e.clientY;         // 위로 끌면 delta 양수 → 커짐
+    moved = Math.max(moved, Math.abs(delta));
+    setPanelHeight(startH + delta);
+  });
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    panel.style.transition = "";
+    const h = panel.getBoundingClientRect().height;
+    if(moved < 6){
+      // 드래그가 거의 없었으면 탭으로 간주 → min ↔ half 순환
+      const target = panel.classList.contains("min") ? panelHalfH() : PANEL_MIN;
+      setPanelHeight(target);
+      panel.classList.toggle("min", target===PANEL_MIN);
+      return;
+    }
+    const snaps = [PANEL_MIN, panelHalfH(), panelMaxH()];
+    const nearest = snaps.reduce((a,b)=> Math.abs(b-h)<Math.abs(a-h) ? b : a);
+    setPanelHeight(nearest);
+    panel.classList.toggle("min", nearest===PANEL_MIN);
+  }
+  toggle.addEventListener("pointerup", endDrag);
+  toggle.addEventListener("pointercancel", endDrag);
+})();
 </script>
 </body>
 </html>
