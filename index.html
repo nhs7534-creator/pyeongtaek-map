@@ -614,7 +614,7 @@ function openDetail(p, pan){
       border-radius:9px;cursor:pointer">✏️ 정보가 다른가요? 수정 제안하기</button>`;
   $("#detail").classList.add("show");
   document.getElementById("btnSuggestEdit").addEventListener("click", ()=>openEditModal(p));
-  map.setCenter(new kakao.maps.LatLng(p.lat,p.lng)); map.setLevel(3);
+  map.setCenter(new kakao.maps.LatLng(p.lat,p.lng)); map.setLevel(1);
 }
 function closeDetail(){ $("#detail").classList.remove("show"); }
 
