@@ -189,7 +189,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
   .brand .tagline{display:none}
   .btn-add span{display:none}
   .btn-add{padding:9px 12px}
-  .panel{left:0;right:0;top:auto;bottom:0;width:100%;border-radius:18px 18px 0 0;height:58vh;transition:height .25s}
+  .panel{left:0;right:0;top:auto;bottom:0;width:100%;border-radius:18px 18px 0 0;height:72vh;transition:height .25s}
   .panel.min{height:118px}
   .panel-toggle{display:block;width:100%;padding:14px 0 10px;text-align:center;touch-action:none;cursor:grab}
   .panel-toggle .bar{display:inline-block;width:42px;height:4.5px;border-radius:3px;background:#CFC8B8}
@@ -814,7 +814,7 @@ function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({"&":"&amp;
 /* 모바일 패널 — 손가락으로 끌어서 크기 조절 (드래그) + 손잡이 탭으로 순환 전환 */
 const PANEL_MIN = 118;
 const panelMaxH = () => window.innerHeight - 80;
-const panelHalfH = () => Math.round(window.innerHeight * 0.58);
+const panelHalfH = () => Math.round(window.innerHeight * 0.72);
 function setPanelHeight(px){
   const max = panelMaxH();
   $("#panel").style.height = Math.max(PANEL_MIN, Math.min(max, px)) + "px";
