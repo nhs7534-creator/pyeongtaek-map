@@ -108,7 +108,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .empty b{color:var(--ink)}
 
 /* ---------- 광고 영역 ---------- */
-.ad-area{margin:0 8px 10px;display:none}
+.ad-area{margin:14px 0 4px;padding-top:14px;border-top:1px dashed var(--line);display:none}
 .ad-area.show{display:block}
 .ad-label{font-size:11px;color:var(--ink-soft);font-weight:700;margin:2px 2px 6px;letter-spacing:.2px}
 .ad-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:9px;margin-bottom:2px}
@@ -117,7 +117,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .ad-list a{flex:none;width:54px;height:54px;border-radius:11px;overflow:hidden;border:1px solid var(--line);
   display:block;transition:transform .12s, border-color .12s}
 .ad-list a:hover{transform:translateY(-2px);border-color:var(--moss)}
-.ad-list img{width:100%;height:100%;object-fit:cover;display:block}
+.ad-list img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none}
 .ad-banner{border-radius:10px;overflow:hidden;border:1px solid var(--line);position:relative;background:var(--paper)}
 .ad-banner a{display:block;line-height:0}
 .ad-banner img{width:100%;height:140px;display:block;object-fit:contain;background:var(--paper)}
@@ -246,12 +246,14 @@ input,select,textarea{font-family:inherit;font-size:15px}
     <div class="hint">예: 노인일자리 · 공정무역 · 돌봄 · 카페 · 재활용</div>
   </div>
   <div class="chips" id="chips"></div>
-  <div class="ad-area" id="adArea">
-    <div class="ad-label">함께하는 기업 · 광고</div>
-    <div class="ad-list" id="adList"></div>
-    <div class="ad-banner" id="adBanner"></div>
+  <div class="list" id="list">
+    <div id="listItems"></div>
+    <div class="ad-area" id="adArea">
+      <div class="ad-label">함께하는 기업 · 광고</div>
+      <div class="ad-list" id="adList"></div>
+      <div class="ad-banner" id="adBanner"></div>
+    </div>
   </div>
-  <div class="list" id="list"></div>
 </aside>
 
 <!-- 상세 카드 -->
@@ -414,7 +416,7 @@ const $ = s => document.querySelector(s);
   s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&libraries=services&autoload=false`;
   s.onload = () => kakao.maps.load(init);
   s.onerror = () => {
-    $("#list").innerHTML = `<div class="empty"><b>지도를 불러오지 못했습니다.</b><br>index.html 상단의 KAKAO_APP_KEY를 확인하고,<br>카카오 개발자센터에 사이트 도메인을 등록했는지 확인해주세요.<br>(설치가이드.md 참고)</div>`;
+    $("#listItems").innerHTML = `<div class="empty"><b>지도를 불러오지 못했습니다.</b><br>index.html 상단의 KAKAO_APP_KEY를 확인하고,<br>카카오 개발자센터에 사이트 도메인을 등록했는지 확인해주세요.<br>(설치가이드.md 참고)</div>`;
   };
   document.head.appendChild(s);
 })();
@@ -573,10 +575,10 @@ function refresh(){
 function renderList(data){
   const q = $("#q").value.trim();
   if(!data.length){
-    $("#list").innerHTML = `<div class="empty"><b>${q ? `'${escapeHtml(q)}' 검색 결과가 없어요.` : "표시할 기관이 없어요."}</b><br>알고 있는 착한 기관이 있다면<br>오른쪽 위 <b>[기관 등록]</b>으로 알려주세요!</div>`;
+    $("#listItems").innerHTML = `<div class="empty"><b>${q ? `'${escapeHtml(q)}' 검색 결과가 없어요.` : "표시할 기관이 없어요."}</b><br>알고 있는 착한 기관이 있다면<br>오른쪽 위 <b>[기관 등록]</b>으로 알려주세요!</div>`;
     return;
   }
-  $("#list").innerHTML =
+  $("#listItems").innerHTML =
     `<div class="result-meta">${data.length}곳${q?` · '${escapeHtml(q)}'`:""}</div>` +
     data.map((p,i)=>`
       <div class="card" style="--cat:${primaryColor(p.category)}" data-i="${places.indexOf(p)}">
@@ -820,20 +822,20 @@ function setPanelHeight(px){
 (function initPanelDrag(){
   const toggle = $("#panelToggle"), panel = $("#panel");
   let dragging=false, startY=0, startH=0, moved=0;
-  toggle.addEventListener("pointerdown", e=>{
+
+  function startDrag(y){
     if(window.innerWidth>760) return;
     dragging = true; moved = 0;
-    startY = e.clientY;
+    startY = y;
     startH = panel.getBoundingClientRect().height;
     panel.style.transition = "none";
-    toggle.setPointerCapture(e.pointerId);
-  });
-  toggle.addEventListener("pointermove", e=>{
+  }
+  function moveDrag(y){
     if(!dragging) return;
-    const delta = startY - e.clientY;         // 위로 끌면 delta 양수 → 커짐
+    const delta = startY - y;                 // 위로 끌면 delta 양수 → 커짐
     moved = Math.max(moved, Math.abs(delta));
     setPanelHeight(startH + delta);
-  });
+  }
   function endDrag(){
     if(!dragging) return;
     dragging = false;
@@ -851,8 +853,17 @@ function setPanelHeight(px){
     setPanelHeight(nearest);
     panel.classList.toggle("min", nearest===PANEL_MIN);
   }
-  toggle.addEventListener("pointerup", endDrag);
-  toggle.addEventListener("pointercancel", endDrag);
+
+  // 터치(모바일 실제 기기·인앱브라우저) — 가장 호환성이 좋은 방식
+  toggle.addEventListener("touchstart", e=>{ startDrag(e.touches[0].clientY); }, {passive:true});
+  toggle.addEventListener("touchmove", e=>{ if(dragging){ moveDrag(e.touches[0].clientY); e.preventDefault(); } }, {passive:false});
+  toggle.addEventListener("touchend", endDrag);
+  toggle.addEventListener("touchcancel", endDrag);
+
+  // 마우스(PC에서 창 크기를 줄여 테스트할 때용)
+  toggle.addEventListener("mousedown", e=>{ startDrag(e.clientY); });
+  document.addEventListener("mousemove", e=>{ if(dragging) moveDrag(e.clientY); });
+  document.addEventListener("mouseup", endDrag);
 })();
 </script>
 </body>
