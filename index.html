@@ -148,9 +148,11 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--moss)}
 .field textarea{resize:vertical;min-height:72px}
 .field .sub{font-size:11.5px;color:var(--ink-soft);margin-top:4px}
-.addr-row{display:flex;gap:8px}
-.addr-row input{flex:1}
-.btn-geo{flex:none;background:var(--moss);color:#fff;font-size:13px;font-weight:700;border-radius:9px;padding:0 14px}
+.addr-row{display:flex;gap:8px;flex-wrap:wrap}
+.addr-row input{flex:1;min-width:160px}
+.btn-geo{flex:none;background:var(--moss);color:#fff;font-size:13px;font-weight:700;border-radius:9px;padding:0 14px;height:38px}
+.btn-pick{flex:none;background:var(--pine);color:#fff;font-size:13px;font-weight:700;border-radius:9px;padding:0 14px;height:38px;display:flex;align-items:center;gap:5px}
+.addr-hint{font-size:11.5px;color:var(--ink-soft);margin-top:5px;line-height:1.5}
 .geo-ok{font-size:12.5px;margin-top:6px;font-weight:600}
 .geo-ok.yes{color:#2B8A3E}.geo-ok.no{color:#C92A2A}
 .btn-submit{width:100%;background:var(--gold);color:#2B1D00;font-size:15.5px;font-weight:800;padding:13px 0;border-radius:11px;margin-top:6px}
@@ -182,12 +184,23 @@ input,select,textarea{font-family:inherit;font-size:15px}
   .detail{top:70px;right:10px;left:10px;width:auto}
   .list{padding-bottom:20px}
 }
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}/* ---------- 지도 클릭 위치선택 모드 ---------- */
+.map-pick-banner{position:absolute;top:66px;left:50%;transform:translateX(-50%);z-index:25;
+  background:var(--pine);color:#F3EFE2;padding:10px 12px 10px 18px;border-radius:999px;box-shadow:var(--shadow);
+  font-size:13.5px;font-weight:600;display:none;align-items:center;gap:12px;white-space:nowrap}
+.map-pick-banner.show{display:flex}
+.map-pick-banner button{background:rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:5px 13px;font-size:12.5px;font-weight:700}
+@media (max-width:760px){ .map-pick-banner{font-size:12.5px;white-space:normal;text-align:center;left:10px;right:10px;transform:none} }
+
 </style>
 </head>
 <body>
 
 <div id="map"></div>
+<div class="map-pick-banner" id="mapPickBanner">
+  <span>📍 정확한 위치를 지도에서 클릭해주세요</span>
+  <button type="button" id="mapPickCancel">취소</button>
+</div>
 
 <!-- 상단 바 -->
 <header class="topbar">
@@ -248,8 +261,10 @@ input,select,textarea{font-family:inherit;font-size:15px}
           <label>주소 <span class="req">*</span></label>
           <div class="addr-row">
             <input name="address" required placeholder="예: 경기도 평택시 ○○로 12">
-            <button type="button" class="btn-geo" id="btnGeo">위치 확인</button>
+            <button type="button" class="btn-geo" id="btnGeo">주소로 찾기</button>
+            <button type="button" class="btn-pick" id="btnMapPick">🗺️ 지도에서 선택</button>
           </div>
+          <div class="addr-hint">도로명 주소만 간단히 입력하세요 (예: <b>평택시 중앙로 61</b>). 동·호수, 지층, 상세 건물명까지 넣으면 위치를 못 찾을 수 있어요. 주소로 안 찾아지면 <b>[지도에서 선택]</b>으로 정확한 위치를 직접 클릭해주세요.</div>
           <div class="geo-ok" id="geoMsg"></div>
         </div>
         <div class="field">
@@ -274,6 +289,61 @@ input,select,textarea{font-family:inherit;font-size:15px}
           <input name="writer" maxlength="30" placeholder="예: 평택시민">
         </div>
         <button type="submit" class="btn-submit" id="btnSubmit">등록 요청하기</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 정보 수정 제안 모달 -->
+<div class="overlay" id="editOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="정보 수정 제안">
+    <div class="modal-head">
+      <h2>정보 수정 제안하기</h2>
+      <button class="close" id="editModalClose" aria-label="닫기">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice">잘못되었거나 바뀐 정보가 있나요? 수정 제안은 <b>관리자 확인 후</b> 반영됩니다.</div>
+      <form id="editForm">
+        <div class="field">
+          <label>기관·기업명</label>
+          <input name="name" maxlength="60">
+        </div>
+        <div class="field">
+          <label>유형</label>
+          <div class="sub" style="margin:-2px 0 8px">해당하는 유형을 모두 선택하세요</div>
+          <div class="cat-checks" id="editCatChecks"></div>
+        </div>
+        <div class="field">
+          <label>주소</label>
+          <div class="addr-row">
+            <input name="address" placeholder="바뀐 경우에만 입력 후 [주소로 찾기]를 눌러주세요">
+            <button type="button" class="btn-geo" id="editBtnGeo">주소로 찾기</button>
+            <button type="button" class="btn-pick" id="editBtnMapPick">🗺️ 지도에서 선택</button>
+          </div>
+          <div class="addr-hint">도로명 주소만 간단히 입력하세요 (예: <b>평택시 중앙로 61</b>). 정확한 위치가 아니면 <b>[지도에서 선택]</b>으로 직접 클릭해 지정할 수 있어요.</div>
+          <div class="geo-ok" id="editGeoMsg"></div>
+        </div>
+        <div class="field">
+          <label>주요 사업</label>
+          <textarea name="biz" maxlength="300"></textarea>
+        </div>
+        <div class="field">
+          <label>검색 키워드(태그)</label>
+          <input name="tags" maxlength="100">
+        </div>
+        <div class="field">
+          <label>전화번호</label>
+          <input name="phone" maxlength="20">
+        </div>
+        <div class="field">
+          <label>홈페이지 · SNS</label>
+          <input name="link" maxlength="200">
+        </div>
+        <div class="field">
+          <label>제안자 (별명 가능)</label>
+          <input name="writer" maxlength="30" placeholder="예: 평택시민">
+        </div>
+        <button type="submit" class="btn-submit" id="editBtnSubmit">수정 제안하기</button>
       </form>
     </div>
   </div>
@@ -438,14 +508,22 @@ function updateCounts(){
   });
 }
 function buildCategoryOptions(){
-  $("#catChecks").innerHTML = CATEGORIES.map(c=>`
-    <label class="cat-check" style="--cc:${c.color}">
-      <input type="checkbox" name="category" value="${c.id}">${c.id}
-    </label>`).join("");
-  $("#catChecks").addEventListener("change", e=>{
-    const box = e.target.closest("input"); if(!box) return;
-    box.closest(".cat-check").classList.toggle("on", box.checked);
+  renderCategoryChecks("catChecks");
+  renderCategoryChecks("editCatChecks");
+  ["catChecks","editCatChecks"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", e=>{
+      const box = e.target.closest("input"); if(!box) return;
+      box.closest(".cat-check").classList.toggle("on", box.checked);
+    });
   });
+}
+function renderCategoryChecks(containerId, selected=[]){
+  document.getElementById(containerId).innerHTML = CATEGORIES.map(c=>{
+    const on = selected.includes(c.id);
+    return `<label class="cat-check${on?' on':''}" style="--cc:${c.color}">
+      <input type="checkbox" name="category" value="${c.id}"${on?' checked':''}>${c.id}
+    </label>`;
+  }).join("");
 }
 
 /* ---------- 검색 ---------- */
@@ -530,11 +608,90 @@ function openDetail(p, pan){
     <div class="actions">
       <a class="a-route" href="${routeLink}" target="_blank" rel="noopener">길찾기</a>
       <a class="a-kakao" href="${kakaoLink}" target="_blank" rel="noopener">카카오맵에서 보기</a>
-    </div>`;
+    </div>
+    <button type="button" id="btnSuggestEdit" style="width:100%;margin-top:8px;background:var(--paper);
+      border:1.5px solid var(--line);color:var(--ink-soft);font-size:12.5px;font-weight:700;padding:8px 0;
+      border-radius:9px;cursor:pointer">✏️ 정보가 다른가요? 수정 제안하기</button>`;
   $("#detail").classList.add("show");
+  document.getElementById("btnSuggestEdit").addEventListener("click", ()=>openEditModal(p));
   if(pan){ map.setLevel(4); map.panTo(new kakao.maps.LatLng(p.lat,p.lng)); }
 }
 function closeDetail(){ $("#detail").classList.remove("show"); }
+
+/* ---------- 정보 수정 제안 ---------- */
+let editGeoResult = null, editTarget = null;
+
+function openEditModal(p){
+  editTarget = p;
+  editGeoResult = (p.lat && p.lng) ? { lat:p.lat, lng:p.lng } : null;   // 주소를 안 바꾸면 기존 좌표 그대로 사용
+  const f = $("#editForm");
+  f.querySelector('[name="name"]').value = p.name || "";
+  f.querySelector('[name="address"]').value = p.address || "";
+  f.querySelector('[name="biz"]').value = p.biz || "";
+  f.querySelector('[name="tags"]').value = p.tags || "";
+  f.querySelector('[name="phone"]').value = p.phone || "";
+  f.querySelector('[name="link"]').value = p.link || "";
+  f.querySelector('[name="writer"]').value = "";
+  renderCategoryChecks("editCatChecks", catList(p.category));
+  $("#editGeoMsg").textContent = "";
+  closeDetail();
+  $("#editOverlay").classList.add("show");
+}
+$("#editModalClose").addEventListener("click", ()=>$("#editOverlay").classList.remove("show"));
+$("#editOverlay").addEventListener("click", e=>{ if(e.target===$("#editOverlay")) $("#editOverlay").classList.remove("show"); });
+
+$("#editBtnGeo").addEventListener("click", ()=>{
+  const addr = $("#editForm").querySelector('[name="address"]').value.trim();
+  const msg = $("#editGeoMsg");
+  if(!addr){ msg.className="geo-ok no"; msg.textContent="주소를 먼저 입력해주세요."; return; }
+  geocoder.addressSearch(addr, (res, status)=>{
+    if(status === kakao.maps.services.Status.OK && res[0]){
+      editGeoResult = {lat:parseFloat(res[0].y), lng:parseFloat(res[0].x)};
+      msg.className="geo-ok yes"; msg.textContent="✓ 새 위치를 찾았습니다.";
+    }else{
+      msg.className="geo-ok no"; msg.textContent="위치를 찾지 못했어요. 도로명 주소를 간단히 입력하거나 [지도에서 선택]을 이용해보세요.";
+    }
+  });
+});
+$("#editBtnMapPick").addEventListener("click", ()=>{
+  startMapPick("#editOverlay", (lat,lng)=>{
+    editGeoResult = {lat,lng};
+    const msg = $("#editGeoMsg");
+    msg.className="geo-ok yes"; msg.textContent=`✓ 지도에서 선택한 위치를 사용합니다 (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+  });
+});
+
+
+$("#editForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const checkedCats = Array.from(document.querySelectorAll('#editCatChecks input[name="category"]:checked')).map(i=>i.value);
+  if(!checkedCats.length){ toast("유형을 하나 이상 선택해주세요."); return; }
+  const f = new FormData($("#editForm"));
+  const entry = {
+    mode: "edit_request",
+    targetRow: editTarget ? editTarget.row : "",
+    originalName: editTarget ? editTarget.name : "",
+    name:f.get("name").trim(), category:checkedCats.join(","), address:f.get("address").trim(),
+    lat: editGeoResult ? editGeoResult.lat : "", lng: editGeoResult ? editGeoResult.lng : "",
+    biz:f.get("biz").trim(), tags:(f.get("tags")||"").trim(), phone:(f.get("phone")||"").trim(),
+    link:(f.get("link")||"").trim(), writer:(f.get("writer")||"").trim()
+  };
+  const btn = $("#editBtnSubmit");
+  btn.disabled = true; btn.textContent = "제안 전송 중…";
+  if(!DATA_API_URL){
+    toast("연습 모드에서는 수정 제안을 보낼 수 없어요.");
+    btn.disabled=false; btn.textContent="수정 제안하기";
+    return;
+  }
+  try{
+    await fetch(DATA_API_URL, { method:"POST", headers:{"Content-Type":"text/plain"}, body:JSON.stringify(entry) });
+    toast("수정 제안 완료! 관리자 확인 후 반영됩니다. 감사합니다 🙂");
+  }catch(err){
+    toast("전송에 실패했어요. 잠시 후 다시 시도해주세요.");
+  }
+  btn.disabled = false; btn.textContent = "수정 제안하기";
+  $("#editOverlay").classList.remove("show");
+});
 
 /* ---------- 등록 모달 ---------- */
 $("#btnAdd").addEventListener("click", ()=>$("#overlay").classList.add("show"));
@@ -553,10 +710,40 @@ $("#btnGeo").addEventListener("click", ()=>{
       geoResult = {lat:parseFloat(res[0].y), lng:parseFloat(res[0].x)};
       msg.className="geo-ok yes"; msg.textContent="✓ 위치를 찾았습니다. 이대로 등록하면 지도에 정확히 표시돼요.";
     }else{
-      msg.className="geo-ok no"; msg.textContent="위치를 찾지 못했어요. 도로명 주소로 다시 입력해보세요. (예: 평택시 ○○로 12)";
+      msg.className="geo-ok no"; msg.textContent="위치를 찾지 못했어요. 도로명 주소를 간단히 입력하거나 [지도에서 선택]을 이용해보세요.";
     }
   });
 });
+$("#btnMapPick").addEventListener("click", ()=>{
+  startMapPick("#overlay", (lat,lng)=>{
+    geoResult = {lat,lng};
+    const msg = $("#geoMsg");
+    msg.className="geo-ok yes"; msg.textContent=`✓ 지도에서 선택한 위치를 사용합니다 (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+  });
+});
+
+/* ---------- 지도를 클릭해서 위치 직접 선택 ---------- */
+let mapPickHandler = null, mapPickMarker = null, pickOverlayId = null;
+function startMapPick(overlayId, onPick){
+  pickOverlayId = overlayId;
+  $(overlayId).classList.remove("show");
+  $("#mapPickBanner").classList.add("show");
+  mapPickHandler = mouseEvent => {
+    const lat = mouseEvent.latLng.getLat(), lng = mouseEvent.latLng.getLng();
+    if(mapPickMarker) mapPickMarker.setMap(null);
+    mapPickMarker = new kakao.maps.Marker({ position: mouseEvent.latLng, map });
+    onPick(lat, lng);
+    endMapPick();
+  };
+  kakao.maps.event.addListener(map, "click", mapPickHandler);
+}
+function endMapPick(){
+  if(mapPickHandler){ kakao.maps.event.removeListener(map, "click", mapPickHandler); mapPickHandler=null; }
+  $("#mapPickBanner").classList.remove("show");
+  if(pickOverlayId) $(pickOverlayId).classList.add("show");
+  pickOverlayId = null;
+}
+$("#mapPickCancel").addEventListener("click", endMapPick);
 
 /* 제출 */
 $("#form").addEventListener("submit", async e=>{
