@@ -207,7 +207,13 @@ input,select,textarea{font-family:inherit;font-size:15px}
   #adArea{order:2}
   .ad-list a{width:46px;height:46px}
 }
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}/* ---------- 지도 클릭 위치선택 모드 ---------- */
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}/* ---------- 지도 마커 이름표 (확대했을 때만 표시) ---------- */
+.mk-label{display:none;margin-top:3px;background:#fff;border:1px solid var(--line);border-radius:6px;
+  padding:2px 7px;font-size:11.5px;font-weight:700;color:var(--ink);white-space:nowrap;
+  box-shadow:0 1px 4px rgba(0,0,0,.22);max-width:160px;overflow:hidden;text-overflow:ellipsis}
+#map.zoomed-in .mk-label{display:block}
+
+/* ---------- 지도 클릭 위치선택 모드 ---------- */
 .map-pick-banner{position:absolute;top:66px;left:50%;transform:translateX(-50%);z-index:25;
   background:var(--pine);color:#F3EFE2;padding:10px 12px 10px 18px;border-radius:999px;box-shadow:var(--shadow);
   font-size:13.5px;font-weight:600;display:none;align-items:center;gap:12px;white-space:nowrap}
@@ -433,6 +439,10 @@ async function init(){
   map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
   geocoder = new kakao.maps.services.Geocoder();
 
+  const updateZoomClass = () => $("#map").classList.toggle("zoomed-in", map.getLevel() <= 4);
+  kakao.maps.event.addListener(map, "zoom_changed", updateZoomClass);
+  updateZoomClass();
+
   buildChips();
   buildCategoryOptions();
   places = await loadData();
@@ -602,14 +612,18 @@ $("#list").addEventListener("click", e=>{
 function renderMarkers(data){
   markers.forEach(m=>m.setMap(null)); markers=[];
   data.forEach(p=>{
-    const el = document.createElement("div");
-    el.style.cssText = `width:22px;height:22px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);
-      background:${primaryColor(p.category)};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer`;
-    el.title = p.name;
+    const wrap = document.createElement("div");
+    wrap.className = "mk-wrap";
+    wrap.style.cssText = "display:flex;flex-direction:column;align-items:center;cursor:pointer";
+    wrap.innerHTML = `
+      <div class="mk-pin" style="width:22px;height:22px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);
+        background:${primaryColor(p.category)};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)"></div>
+      <span class="mk-label">${escapeHtml(p.name)}</span>`;
+    wrap.title = p.name;
     const ov = new kakao.maps.CustomOverlay({
-      position:new kakao.maps.LatLng(p.lat,p.lng), content:el, yAnchor:1, zIndex:3
+      position:new kakao.maps.LatLng(p.lat,p.lng), content:wrap, yAnchor:1, zIndex:3
     });
-    el.addEventListener("click", ()=>openDetail(p, false));
+    wrap.addEventListener("click", ()=>openDetail(p, false));
     ov.setMap(map); markers.push(ov);
   });
 }
