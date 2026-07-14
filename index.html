@@ -91,8 +91,6 @@ input,select,textarea{font-family:inherit;font-size:15px}
 
 /* 결과 리스트 */
 .list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column}
-#listItems{order:2}
-#adArea{order:1}
 .list::-webkit-scrollbar{width:8px}
 .list::-webkit-scrollbar-thumb{background:#D8D2C4;border-radius:4px}
 .result-meta{font-size:12.5px;color:var(--ink-soft);padding:4px 8px 8px}
@@ -110,7 +108,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .empty b{color:var(--ink)}
 
 /* ---------- 광고 영역 ---------- */
-.ad-area{margin:4px 0 14px;padding-bottom:14px;border-bottom:1px dashed var(--line);display:none}
+.ad-area{margin:0;padding:14px 14px;border-bottom:1px dashed var(--line);display:none}
 .ad-area.show{display:block}
 .ad-label{font-size:11px;color:var(--ink-soft);font-weight:700;margin:2px 2px 6px;letter-spacing:.2px}
 .ad-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:9px;margin-bottom:2px}
@@ -125,6 +123,18 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .ad-banner img{width:100%;height:140px;display:block;object-fit:contain;background:var(--paper)}
 .ad-banner .ad-tag{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;
   padding:2px 7px;border-radius:5px;letter-spacing:.3px;pointer-events:none}
+
+/* ---------- 모바일 전용 광고 팝업 ---------- */
+.ad-popup-overlay{display:none;position:fixed;inset:0;background:rgba(20,20,20,.55);z-index:60;
+  align-items:center;justify-content:center;padding:20px}
+.ad-popup-overlay.show{display:flex}
+.ad-popup{position:relative;width:100%;max-width:340px;background:var(--paper);border-radius:16px;
+  padding:16px;box-shadow:0 12px 34px rgba(0,0,0,.3)}
+.ad-popup-close{position:absolute;top:6px;right:8px;width:32px;height:32px;font-size:22px;line-height:1;
+  color:var(--ink-soft);border-radius:50%}
+.ad-popup-close:hover{background:rgba(0,0,0,.06)}
+.ad-popup-label{font-size:12px;font-weight:700;color:var(--ink-soft);margin:2px 30px 10px 2px;letter-spacing:.2px}
+@media (min-width:761px){.ad-popup-overlay{display:none!important}}
 
 /* ---------- 상세 카드(지도 위) ---------- */
 .detail{position:absolute;right:14px;top:66px;z-index:16;width:340px;max-width:calc(100vw - 28px);
@@ -202,9 +212,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
   .chips::-webkit-scrollbar{height:5px}
   .chips::-webkit-scrollbar-thumb{background:#D8D2C4;border-radius:3px}
   .chip{flex:none}
-  .ad-area{flex:none;margin:14px 0 4px;padding-top:14px;padding-bottom:0;border-top:1px dashed var(--line);border-bottom:none}
-  #listItems{order:1}
-  #adArea{order:2}
+  .ad-area{display:none!important}
   .ad-list a{width:46px;height:46px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}/* ---------- 지도 마커 이름표 (확대했을 때만 표시) ---------- */
@@ -247,6 +255,11 @@ input,select,textarea{font-family:inherit;font-size:15px}
 <!-- 좌측 패널 -->
 <aside class="panel" id="panel">
   <button class="panel-toggle" id="panelToggle" aria-label="패널 열기/접기"><span class="bar"></span></button>
+  <div class="ad-area" id="adArea">
+    <div class="ad-label">함께하는 기업 · 광고</div>
+    <div class="ad-list" id="adList"></div>
+    <div class="ad-banner" id="adBanner"></div>
+  </div>
   <div class="panel-head">
     <div class="searchbox">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -258,11 +271,6 @@ input,select,textarea{font-family:inherit;font-size:15px}
   <div class="chips" id="chips"></div>
   <div class="list" id="list">
     <div id="listItems"></div>
-    <div class="ad-area" id="adArea">
-      <div class="ad-label">함께하는 기업 · 광고</div>
-      <div class="ad-list" id="adList"></div>
-      <div class="ad-banner" id="adBanner"></div>
-    </div>
   </div>
 </aside>
 
@@ -382,6 +390,16 @@ input,select,textarea{font-family:inherit;font-size:15px}
 
 <div class="toast" id="toast"></div>
 
+<!-- 모바일 전용 광고 팝업 -->
+<div class="ad-popup-overlay" id="adPopupOverlay">
+  <div class="ad-popup">
+    <button class="ad-popup-close" id="adPopupClose" aria-label="닫기">×</button>
+    <div class="ad-popup-label">함께하는 기업 · 광고</div>
+    <div class="ad-banner" id="adBannerPopup"></div>
+  </div>
+</div>
+
+
 <script>
 /* ================================================================
    ① 설정 — 이 두 줄만 바꾸면 됩니다 (설치가이드.md 참고)
@@ -467,6 +485,7 @@ async function loadAd(){
       adTimer = setInterval(()=>{ adIdx = (adIdx + 1) % ads.length; showAdBanner(); }, 5000); // 5초마다 전환
     }
     $("#adArea").classList.add("show");
+    setTimeout(openAdPopup, 600); // 모바일에서 진입할 때마다 살짝 뒤에 팝업으로 노출
   }catch(e){ /* 광고 로드 실패 시 조용히 무시 */ }
 }
 
@@ -483,18 +502,31 @@ function renderAdList(){
   ads.forEach(ad => logAdEvent(ad.row, "view"));   // 목록에 등장 = 1회 노출로 집계
 }
 
-/* 하단 배너 — 18초 간격으로 천천히 자동 전환 */
+/* 하단 배너 — 5초 간격으로 랜덤 순환 전환 (PC 상단 배너 + 모바일 팝업 배너 동시 반영) */
 function showAdBanner(){
   const ad = ads[adIdx];
-  const slot = $("#adBanner");
   const img = `<img src="${escapeHtml(ad.img)}" alt="${escapeHtml(ad.name||"광고")}" loading="lazy">`;
-  slot.innerHTML = ad.link
-    ? `<a href="${escapeHtml(ad.link)}" target="_blank" rel="noopener sponsored" id="adBannerLink">${img}</a><span class="ad-tag">광고</span>`
+  const html = ad.link
+    ? `<a href="${escapeHtml(ad.link)}" target="_blank" rel="noopener sponsored" class="adBannerLink">${img}</a><span class="ad-tag">광고</span>`
     : `${img}<span class="ad-tag">광고</span>`;
+  $("#adBanner").innerHTML = html;
+  const popupSlot = $("#adBannerPopup");
+  if(popupSlot) popupSlot.innerHTML = html;
   logAdEvent(ad.row, "view");
-  const link = document.getElementById("adBannerLink");
-  if(link) link.addEventListener("click", ()=>logAdEvent(ad.row, "click"));
+  document.querySelectorAll(".adBannerLink").forEach(link=>{
+    link.addEventListener("click", ()=>logAdEvent(ad.row, "click"));
+  });
 }
+
+/* 모바일 전용 광고 팝업 — 접속(=새로고침)할 때마다 매번 노출, PC에서는 CSS로 아예 숨김 */
+function openAdPopup(){
+  if(!ads.length) return;
+  if(window.innerWidth > 760) return;
+  $("#adPopupOverlay").classList.add("show");
+}
+function closeAdPopup(){ $("#adPopupOverlay").classList.remove("show"); }
+$("#adPopupClose").addEventListener("click", closeAdPopup);
+$("#adPopupOverlay").addEventListener("click", e=>{ if(e.target.id === "adPopupOverlay") closeAdPopup(); });
 
 function logAdEvent(row, type){
   if(!DATA_API_URL || !row) return;
