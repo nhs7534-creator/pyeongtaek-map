@@ -614,7 +614,49 @@ function buildDongOptions(){
   const sel = $("#dongFilter");
   sel.innerHTML = `<option value="">읍면동 전체</option>` +
     DONG_LIST.map(d=>`<option value="${d}">${d}</option>`).join("");
-  sel.addEventListener("change", refresh);
+  sel.addEventListener("change", ()=>{
+    refresh();
+    moveToDong(sel.value);
+  });
+}
+
+/* ---------- 읍면동 선택 시 해당 행정구역으로 지도 이동 ----------
+   기업 좌표가 아니라, 카카오에 "평택시 ○○동" 위치 자체를 물어봐서
+   그 행정구역의 공식 중심으로 즉시 이동. (한 번 조회한 동은 캐시해서 다음부턴 지연 없음)
+   읍·면은 면적이 넓어 레벨 7, 동은 좁아 레벨 5로 보여준다. */
+const HOME_CENTER = { lat: 36.9921, lng: 127.1129 };
+const HOME_LEVEL  = 8;
+const DONG_CENTER_CACHE_KEY = "ptmap_dongCenter_v1";
+function dongZoomLevel(dong){ return /읍$|면$/.test(dong) ? 7 : 5; }
+
+function moveToDong(dong){
+  if(!map) return;
+
+  if(!dong){                       // "읍면동 전체" → 평택시 전체 화면으로 복귀
+    map.panTo(new kakao.maps.LatLng(HOME_CENTER.lat, HOME_CENTER.lng));
+    map.setLevel(HOME_LEVEL, { animate: true });
+    return;
+  }
+
+  let cache = {};
+  try{ cache = JSON.parse(localStorage.getItem(DONG_CENTER_CACHE_KEY) || "{}"); }catch{}
+
+  const go = (lat, lng)=>{
+    map.panTo(new kakao.maps.LatLng(lat, lng));
+    map.setLevel(dongZoomLevel(dong), { animate: true });
+  };
+
+  if(cache[dong]){ go(cache[dong].lat, cache[dong].lng); return; }
+
+  geocoder.addressSearch(`경기도 평택시 ${dong}`, (result, status)=>{
+    if(status === kakao.maps.services.Status.OK && result.length){
+      const lat = Number(result[0].y), lng = Number(result[0].x);
+      cache[dong] = { lat, lng };
+      try{ localStorage.setItem(DONG_CENTER_CACHE_KEY, JSON.stringify(cache)); }catch{}
+      go(lat, lng);
+    }
+    // 조회 실패 시 지도는 그대로 둠 (리스트 필터링은 이미 적용됨)
+  });
 }
 
 /* ---------- 좌표 → 행정동 변환 (카카오 역지오코딩) ----------
