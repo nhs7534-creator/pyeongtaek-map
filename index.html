@@ -20,6 +20,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<script>
+/* 접속(=페이지 로드)할 때마다 7가지 밝은 톤 중 하나를 무작위로 적용 */
+document.documentElement.setAttribute('data-theme', String(Math.floor(Math.random()*7)+1));
+</script>
 <style>
 /* ============================================================
    평택 함께지도 — 디자인 토큰
@@ -46,6 +50,18 @@
   --font-body:'Pretendard Variable',Pretendard,-apple-system,'Noto Sans KR',sans-serif;
   --font-disp:'Gowun Batang',serif;
 }
+
+/* ------------------------------------------------------------
+   접속할 때마다 무작위로 바뀌는 7가지 밝은 톤 테마
+   (헤더/포인트색·배경만 바뀌고, 유형별 배지 색은 그대로 유지)
+   ------------------------------------------------------------ */
+html[data-theme="1"]{ --pine:#E8543E; --moss:#F2795A; --gold:#FFC94D; --gold-dk:#F0A800; --paper:#FFF4EC; --line:#FCE0D2; } /* 코랄 */
+html[data-theme="2"]{ --pine:#0FA37F; --moss:#2FBF9B; --gold:#FFD166; --gold-dk:#F2B705; --paper:#EAFBF6; --line:#CFF1E6; } /* 민트 */
+html[data-theme="3"]{ --pine:#1E88C7; --moss:#3AA6DE; --gold:#FFC94D; --gold-dk:#F0A800; --paper:#EAF6FD; --line:#D2ECFA; } /* 스카이 */
+html[data-theme="4"]{ --pine:#6FA916; --moss:#8FC72E; --gold:#FFB703; --gold-dk:#E39400; --paper:#F7FCEA; --line:#E3F1C4; } /* 레몬그린 */
+html[data-theme="5"]{ --pine:#8858C8; --moss:#A57BDB; --gold:#FFC94D; --gold-dk:#F0A800; --paper:#F6F0FD; --line:#E7D9F7; } /* 라벤더 */
+html[data-theme="6"]{ --pine:#E8608C; --moss:#F084A8; --gold:#FFC94D; --gold-dk:#F0A800; --paper:#FFF0F4; --line:#FBDCE6; } /* 피치 */
+html[data-theme="7"]{ --pine:#F2790B; --moss:#FF9A3D; --gold:#FFD166; --gold-dk:#F2B705; --paper:#FFF6EA; --line:#FCE6C5; } /* 오렌지 */
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
 body{font-family:var(--font-body);color:var(--ink);overflow:hidden;background:var(--paper)}
@@ -72,12 +88,19 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .panel{position:absolute;top:66px;left:14px;bottom:14px;width:360px;z-index:15;display:flex;flex-direction:column;
   background:var(--paper);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--line)}
 .panel-head{padding:14px 14px 10px}
-.searchbox{display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--line);
+.search-row{display:flex;align-items:center;gap:8px}
+.searchbox{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--line);
   border-radius:10px;padding:9px 12px;transition:border-color .15s}
 .searchbox:focus-within{border-color:var(--moss)}
 .searchbox svg{width:16px;height:16px;color:var(--ink-soft);flex:none}
-.searchbox input{flex:1;border:none;outline:none;background:none;font-size:15px}
+.searchbox input{flex:1;min-width:0;border:none;outline:none;background:none;font-size:15px}
 .searchbox .clear{color:var(--ink-soft);font-size:16px;line-height:1;padding:2px}
+.dong-select{flex:none;width:104px;height:100%;border:1.5px solid var(--line);border-radius:10px;
+  background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6470' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center/13px;
+  padding:9px 24px 9px 10px;font-size:13px;font-weight:600;color:var(--ink);appearance:none;-webkit-appearance:none;
+  cursor:pointer;transition:border-color .15s}
+.dong-select:focus{outline:none;border-color:var(--moss)}
+.dong-select:hover{border-color:#C9C2B2}
 .hint{font-size:12px;color:var(--ink-soft);margin-top:7px;padding-left:2px}
 
 /* 범례형 필터 칩 — 시그니처 요소 */
@@ -256,15 +279,18 @@ input,select,textarea{font-family:inherit;font-size:15px}
 <aside class="panel" id="panel">
   <button class="panel-toggle" id="panelToggle" aria-label="패널 열기/접기"><span class="bar"></span></button>
   <div class="ad-area" id="adArea">
-    <div class="ad-label">함께하는 착한기업 홍보</div>
+    <div class="ad-label">우리동네 착한기업 홍보</div>
     <div class="ad-list" id="adList"></div>
     <div class="ad-banner" id="adBanner"></div>
   </div>
   <div class="panel-head">
-    <div class="searchbox">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" type="search" placeholder="기관명, 사업, 키워드로 검색" autocomplete="off">
-      <button class="clear" id="qClear" style="display:none" aria-label="검색어 지우기">×</button>
+    <div class="search-row">
+      <div class="searchbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="기관명, 사업, 키워드로 검색" autocomplete="off">
+        <button class="clear" id="qClear" style="display:none" aria-label="검색어 지우기">×</button>
+      </div>
+      <select id="dongFilter" class="dong-select" aria-label="읍면동 선택"></select>
     </div>
     <div class="hint">예: 노인일자리 · 공정무역 · 돌봄 · 카페 · 재활용</div>
   </div>
@@ -394,7 +420,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
 <div class="ad-popup-overlay" id="adPopupOverlay">
   <div class="ad-popup">
     <button class="ad-popup-close" id="adPopupClose" aria-label="닫기">×</button>
-    <div class="ad-popup-label">함께하는 기업 · 광고</div>
+    <div class="ad-popup-label">우리동네 착한기업 홍보</div>
     <div class="ad-banner" id="adBannerPopup"></div>
   </div>
 </div>
@@ -421,6 +447,14 @@ const CATEGORIES = [
 const catColor = id => (CATEGORIES.find(c=>c.id===id)||{}).color || "#888";
 const catList  = str => String(str||"").split(",").map(s=>s.trim()).filter(Boolean);
 const primaryColor = str => { const l = catList(str); return l.length ? catColor(l[0]) : "#888"; };
+
+/* ②-1 평택시 읍·면·동 목록 (검색창 옆 필터용) */
+const DONG_LIST = [
+  "팽성읍","안중읍","포승읍","청북읍",
+  "진위면","서탄면","고덕면","오성면","현덕면",
+  "신장1동","신장2동","지산동","송북동","서정동","중앙동","고덕동",
+  "송탄동","세교동","동삭동","비전1동","비전2동","통복동","원평동","신평동","용이동",
+];
 
 /* ③ 예시 데이터 (DATA_API_URL 연결 전 테스트용 — 실제 기관 아님) */
 const SAMPLE = [
@@ -463,9 +497,11 @@ async function init(){
 
   buildChips();
   buildCategoryOptions();
+  buildDongOptions();
   places = await loadData();
-  refresh();
+  refresh();               // 좌표→행정동 변환 전, 우선 목록부터 보여줌
   loadAd();
+  attachDongInfo(places).then(refresh);   // 변환 끝나면 읍면동 필터가 정확해짐
 }
 
 /* ---------- 광고 영역 ---------- */
@@ -574,6 +610,48 @@ function updateCounts(){
     if(el) el.textContent = n ? ` ${n}` : "";
   });
 }
+function buildDongOptions(){
+  const sel = $("#dongFilter");
+  sel.innerHTML = `<option value="">읍면동 전체</option>` +
+    DONG_LIST.map(d=>`<option value="${d}">${d}</option>`).join("");
+  sel.addEventListener("change", refresh);
+}
+
+/* ---------- 좌표 → 행정동 변환 (카카오 역지오코딩) ----------
+   등록된 좌표(lat,lng)를 기준으로 실제 위치한 행정동을 판정.
+   주소에 동 이름을 안 적어도, 지도에 찍힌 위치대로 정확히 걸러짐.
+   같은 좌표는 브라우저에 캐시해서 재방문 시 API 호출을 줄임. */
+const DONG_CACHE_KEY = "ptmap_dongCache_v1";
+function loadDongCache(){
+  try{ return JSON.parse(localStorage.getItem(DONG_CACHE_KEY) || "{}"); }catch{ return {}; }
+}
+function saveDongCache(cache){
+  try{ localStorage.setItem(DONG_CACHE_KEY, JSON.stringify(cache)); }catch{}
+}
+function coordKey(lat,lng){ return `${(+lat).toFixed(5)},${(+lng).toFixed(5)}`; }
+function coord2Dong(lat, lng){
+  return new Promise(resolve=>{
+    geocoder.coord2RegionCode(lng, lat, (result, status)=>{
+      if(status === kakao.maps.services.Status.OK){
+        const h = result.find(r=>r.region_type === "H") || result[0];
+        resolve(h ? h.region_3depth_name : "");
+      } else resolve("");
+    });
+  });
+}
+async function attachDongInfo(list){
+  const cache = loadDongCache();
+  let changed = false;
+  for(const p of list){
+    if(!p.lat || !p.lng) continue;
+    const key = coordKey(p.lat, p.lng);
+    if(cache[key]){ p.dong = cache[key]; continue; }
+    p.dong = await coord2Dong(p.lat, p.lng);
+    if(p.dong){ cache[key] = p.dong; changed = true; }
+  }
+  if(changed) saveDongCache(cache);
+}
+
 function buildCategoryOptions(){
   renderCategoryChecks("catChecks");
   renderCategoryChecks("editCatChecks");
@@ -602,8 +680,13 @@ $("#qClear").addEventListener("click", ()=>{ $("#q").value=""; $("#qClear").styl
 
 function filtered(){
   const q = $("#q").value.trim().toLowerCase();
+  const dong = $("#dongFilter").value;
   return places.filter(p=>{
     if(!catList(p.category).some(c=>activeCats.has(c))) return false;
+    if(dong){
+      const matchDong = p.dong ? (p.dong === dong) : String(p.address||"").includes(dong);
+      if(!matchDong) return false;
+    }
     if(!q) return true;
     const hay = [p.name,p.biz,p.tags,p.address,p.category].join(" ").toLowerCase();
     return q.split(/\s+/).every(w=>hay.includes(w));
