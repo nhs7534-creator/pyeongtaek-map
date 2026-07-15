@@ -621,11 +621,11 @@ function buildDongOptions(){
 }
 
 /* ---------- 읍면동 선택 시 지도 부드럽게 이동/확대 ----------
-   해당 읍면동에 있는 기관들의 좌표로 영역(bounds)을 구한 뒤,
-   카카오맵의 panTo(부드러운 이동) + setLevel(animate)로 자연스럽게 화면을 맞춰준다. */
+   해당 읍면동에 있는 기관들 좌표의 한가운데(평균 위치)로 이동하고,
+   확대 정도는 3단계로 고정해서 보여준다. */
 const HOME_CENTER = { lat: 36.9921, lng: 127.1129 };
 const HOME_LEVEL  = 7;
-const DONG_MIN_LEVEL = 4; // 기관이 1곳뿐이어도 과하게 확대되지 않도록 하한선
+const DONG_ZOOM_LEVEL = 3;
 
 function flyToDong(dong){
   if(!map) return;
@@ -642,26 +642,11 @@ function flyToDong(dong){
   });
   if(!matches.length) return;      // 해당 읍면동에 등록된 기관이 아직 없으면 지도는 그대로 둠
 
-  const bounds = new kakao.maps.LatLngBounds();
-  matches.forEach(p=> bounds.extend(new kakao.maps.LatLng(p.lat, p.lng)));
+  const avgLat = matches.reduce((sum,p)=> sum + Number(p.lat), 0) / matches.length;
+  const avgLng = matches.reduce((sum,p)=> sum + Number(p.lng), 0) / matches.length;
 
-  const isMobile = window.innerWidth <= 760;
-  const padTop = 90, padRight = 60;
-  const padBottom = isMobile ? Math.round(window.innerHeight*0.72) + 30 : 60; // 모바일 하단 시트만큼 여유
-  const padLeft  = isMobile ? 60 : 420;                                       // PC 사이드 패널만큼 여유
-
-  // 카카오맵은 bounds→level 자동 계산 함수가 따로 없어서,
-  // 현재 화면을 잠깐 저장해뒀다가 setBounds로 목표 center/level을 구하고, 화면은 원래대로 되돌린 뒤 애니메이션으로 이동시킨다.
-  const prevCenter = map.getCenter();
-  const prevLevel  = map.getLevel();
-  map.setBounds(bounds, padTop, padRight, padBottom, padLeft);
-  const targetCenter = map.getCenter();
-  const targetLevel  = Math.max(map.getLevel() + 1, DONG_MIN_LEVEL); // 살짝 덜 확대해서 여유있게
-  map.setCenter(prevCenter);
-  map.setLevel(prevLevel);
-
-  map.panTo(targetCenter);
-  map.setLevel(targetLevel, { animate: true });
+  map.panTo(new kakao.maps.LatLng(avgLat, avgLng));
+  map.setLevel(DONG_ZOOM_LEVEL, { animate: true });
 }
 
 /* ---------- 좌표 → 행정동 변환 (카카오 역지오코딩) ----------
