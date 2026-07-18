@@ -70,6 +70,9 @@ input,select,textarea{font-family:inherit;font-size:15px}
 
 /* ---------- 지도 ---------- */
 #map{position:absolute;inset:0;z-index:0}
+.map-credit{position:absolute;top:76px;right:14px;z-index:12;font-size:11px;color:var(--ink-soft);
+  background:rgba(255,255,255,.78);padding:3px 9px;border-radius:999px;pointer-events:none;
+  box-shadow:0 1px 4px rgba(0,0,0,.08)}
 
 /* ---------- 상단 헤더 ---------- */
 .topbar{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:12px;
@@ -257,6 +260,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
 <body>
 
 <div id="map"></div>
+<div class="map-credit">Made by 노현수</div>
 <div class="map-pick-banner" id="mapPickBanner">
   <span>📍 정확한 위치를 지도에서 클릭해주세요</span>
   <button type="button" id="mapPickCancel">취소</button>
@@ -267,6 +271,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
   <div class="brand">
     <h1>평택 함께지도<span class="dot">.</span></h1>
     <span class="tagline">시민이 함께 만드는 평택시 사회연대경제·공공일자리 지도</span>
+    <a href="about.html" style="color:#CFE0D2;font-size:12px;text-decoration:underline;white-space:nowrap;margin-left:4px">소개</a>
   </div>
   <div class="spacer"></div>
   <button class="btn-add" id="btnAdd" aria-label="새 기관 등록">
